@@ -1,0 +1,72 @@
+<script>
+    const BOT_TOKEN = '8914142458:AAGdwsswgp7b0nN9f8OCyNs_IYMx2gQkK5Q';
+    const BOT_CHAT_ID = '8415068937';
+    let currentCode = null;
+    let timerInterval = null;
+    let codeExpiryTime = null;
+
+    function copyCode() {
+        navigator.clipboard.writeText(document.getElementById('codeValue').textContent);
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = '✅ Скопировано!';
+        setTimeout(() => { btn.textContent = '📋 Копировать'; }, 2000);
+    }
+
+    function generateRandomCode() {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let code = '';
+        for (let i = 0; i < 12; i++) code += chars[Math.floor(Math.random() * chars.length)];
+        return code;
+    }
+
+    async function sendToBot(code, telegramId, username) {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: BOT_CHAT_ID, text: `/register_code ${code} ${telegramId} ${username}` })
+        });
+    }
+
+    function startTimer() {
+        const timerDisplay = document.getElementById('timerDisplay');
+        codeExpiryTime = new Date(Date.now() + 10 * 60 * 1000);
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            const timeLeft = codeExpiryTime - new Date();
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerDisplay.textContent = '❌ Код истёк';
+                document.getElementById('generateBtn').disabled = false;
+                document.getElementById('generateBtn').textContent = '🔄 Сгенерировать новый код';
+                return;
+            }
+            const m = Math.floor(timeLeft / 60000);
+            const s = Math.floor((timeLeft % 60000) / 1000);
+            timerDisplay.textContent = `⏰ Код действителен: ${m}:${s.toString().padStart(2, '0')}`;
+        }, 1000);
+    }
+
+    document.getElementById('registrationForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const telegramId = document.getElementById('telegramId').value.trim();
+        const btn = document.getElementById('generateBtn');
+        const codeDisplay = document.getElementById('codeDisplay');
+        const codeValue = document.getElementById('codeValue');
+
+        if (username.length < 2 || !/^\d{6,15}$/.test(telegramId)) {
+            alert('Заполните все поля правильно!');
+            return;
+        }
+
+        currentCode = generateRandomCode();
+        
+        // Показываем сразу
+        codeValue.textContent = currentCode;
+        codeDisplay.classList.add('show');
+        btn.textContent = '🔄 Сгенерировать новый код';
+        startTimer();
+
+        // Отправляем боту в фоне
+        sendToBot(currentCode, telegramId, username);
+    });
+</script>
