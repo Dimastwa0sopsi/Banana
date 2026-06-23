@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация Banana Shooter</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px;
+        }
+        .container {
+            background: white; border-radius: 20px; padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 500px; width: 100%; text-align: center;
+        }
+        .logo { font-size: 50px; margin-bottom: 10px; }
+        h1 { color: #333; margin-bottom: 10px; font-size: 24px; }
+        .subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
+        .input-group { margin-bottom: 25px; text-align: left; }
+        .input-label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; font-size: 14px; }
+        input {
+            width: 100%; padding: 15px; border: 2px solid #e0e0e0;
+            border-radius: 10px; font-size: 16px; outline: none;
+        }
+        input:focus { border-color: #667eea; }
+        .btn {
+            width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; border: none; border-radius: 10px; font-size: 16px;
+            font-weight: 600; cursor: pointer; margin-bottom: 15px;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .generated-code {
+            background: #f5f5f5; padding: 20px; border-radius: 10px;
+            margin: 20px 0; display: none;
+        }
+        .generated-code.show { display: block; }
+        .code-text {
+            font-family: 'Courier New', monospace; font-size: 28px; font-weight: bold;
+            color: #764ba2; letter-spacing: 2px; background: white;
+            padding: 10px; border-radius: 5px; margin: 10px 0; user-select: all;
+        }
+        .timer { color: #ff4444; font-size: 14px; margin-top: 10px; }
+        .success-message {
+            background: #d4edda; color: #155724; padding: 15px;
+            border-radius: 10px; margin-top: 20px; display: none;
+        }
+        .copy-btn {
+            background: #4CAF50; color: white; border: none; padding: 8px 15px;
+            border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 10px;
+        }
+        .copy-btn:hover { background: #45a049; }
+        .id-help {
+            background: #fff3cd; border: 1px solid #ffc107; padding: 10px;
+            border-radius: 5px; margin: 10px 0; font-size: 12px; text-align: left;
+        }
+        .id-help code { background: #f8f9fa; padding: 2px 5px; border-radius: 3px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🍌</div>
+        <h1>Banana Shooter</h1>
+        <p class="subtitle">Получите код регистрации</p>
+
+        <form id="registrationForm">
+            <div class="input-group">
+                <label class="input-label">👤 Ваш никнейм</label>
+                <input type="text" id="username" placeholder="Придумайте никнейм" required minlength="2">
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">🆔 Ваш Telegram ID</label>
+                <input type="text" id="telegramId" placeholder="Например: 8415068937" required>
+                <div class="id-help">
+                    <strong>Как узнать Telegram ID:</strong><br>
+                    Найдите бота <code>@userinfobot</code> в Telegram, нажмите Start, и он пришлёт ваш ID.
+                </div>
+            </div>
+
+            <div class="generated-code" id="codeDisplay">
+                <p style="color: #666;">🔑 Ваш код регистрации:</p>
+                <p class="code-text" id="codeValue"></p>
+                <button type="button" class="copy-btn" onclick="copyCode()">📋 Копировать</button>
+                <p class="timer" id="timerDisplay">⏰ Код действителен: 10:00</p>
+                <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                    📨 Код отправлен вам в Telegram и боту поддержки
+                </p>
+            </div>
+
+            <button type="submit" class="btn" id="generateBtn">🔄 Сгенерировать код</button>
+            <div class="success-message" id="successMessage"></div>
+        </form>
+    </div>
+
+    <script>
+        const BOT_TOKEN = '8914142458:AAGdwsswgp7b0nN9f8OCyNs_IYMx2gQkK5Q';
+        const BOT_CHAT_ID = '8415068937';
+        
+        let currentCode = null;
+        let timerInterval = null;
+        let codeExpiryTime = null;
+
+        function copyCode() {
+            navigator.clipboard.writeText(document.getElementById('codeValue').textContent).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = '✅ Скопировано!';
+                setTimeout(() => { btn.textContent = '📋 Копировать'; }, 2000);
+            });
+        }
+
+        function generateRandomCode() {
+            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let code = '';
+            for (let i = 0; i < 12; i++) code += chars[Math.floor(Math.random() * chars.length)];
+            return code;
+        }
+
+        // Отправка кода пользователю в Telegram
+        async function sendToUser(telegramId, code, username) {
+            const msg = `🔐 <b>Ваш код регистрации Banana Shooter</b>\n\n👤 Никнейм: ${username}\n🔑 Код: <code>${code}</code>\n⏰ Создан: ${new Date().toLocaleString('ru-RU')}\n⏳ Действителен 10 минут\n\n📩 Отправьте этот код боту поддержки.`;
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: telegramId, text: msg, parse_mode: 'HTML' })
+            });
+        }
+
+        // Отправка кода боту
+        async function sendToBot(code, telegramId, username) {
+            const text = `/register_code ${code} ${telegramId} ${username}`;
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: BOT_CHAT_ID, text: text })
+            });
+        }
+
+        function startTimer() {
+            const timerDisplay = document.getElementById('timerDisplay');
+            codeExpiryTime = new Date(Date.now() + 10 * 60 * 1000);
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                const timeLeft = codeExpiryTime - new Date();
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = '❌ Код истёк';
+                    document.getElementById('generateBtn').disabled = false;
+                    document.getElementById('generateBtn').textContent = '🔄 Сгенерировать новый код';
+                    return;
+                }
+                const m = Math.floor(timeLeft / 60000);
+                const s = Math.floor((timeLeft % 60000) / 1000);
+                timerDisplay.textContent = `⏰ Код действителен: ${m}:${s.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        document.getElementById('registrationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const telegramId = document.getElementById('telegramId').value.trim();
+            const btn = document.getElementById('generateBtn');
+            const msg = document.getElementById('successMessage');
+
+            if (username.length < 2 || !/^\d{6,15}$/.test(telegramId)) {
+                alert('Заполните все поля правильно!');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Генерация...';
+            currentCode = generateRandomCode();
+
+            // Отправляем и пользователю, и боту
+            await sendToUser(telegramId, currentCode, username);
+            await sendToBot(currentCode, telegramId, username);
+
+            document.getElementById('codeValue').textContent = currentCode;
+            document.getElementById('codeDisplay').classList.add('show');
+            msg.textContent = '✅ Код отправлен вам в Telegram и боту поддержки!';
+            msg.style.display = 'block';
+            btn.textContent = '🔄 Сгенерировать новый код';
+            btn.disabled = false;
+            startTimer();
+            setTimeout(() => { msg.style.display = 'none'; }, 5000);
+        });
+    </script>
+</body>
+</html>
